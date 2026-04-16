@@ -24,3 +24,4 @@ packages = ["src/mcp_server"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+pythonpath = ["."]
