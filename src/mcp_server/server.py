@@ -9,6 +9,7 @@ from mcp import types
 from mcp.server import Server
 from mcp.server.sse import SseServerTransport
 from starlette.applications import Starlette
+from starlette.responses import Response
 from starlette.routing import Mount, Route
 
 from src.mcp_server.tools.lifecycle import browser_start, browser_status, browser_close
@@ -180,11 +181,12 @@ def create_app() -> Starlette:
             await server.run(
                 streams[0], streams[1], server.create_initialization_options()
             )
+        return Response()
 
     return Starlette(
         routes=[
             Route("/sse", endpoint=handle_sse),
-            Mount("/messages", app=sse.handle_post_message),
+            Mount("/messages/", app=sse.handle_post_message),
         ]
     )
 
