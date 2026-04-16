@@ -2,18 +2,24 @@
 
 Live browser control for Claude Code and OpenCode via SeleniumBase. Runs entirely in Docker.
 
-## Quick Start
+## Quick Start (one command)
 
-1. Copy env file and configure:
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+git clone https://github.com/PeterWoolery/SeleniumbaseAgent.git
+cd SeleniumbaseAgent
+./setup.sh
+```
 
-2. Start the server:
-   ```bash
-   docker compose up -d
-   ```
+The script checks prerequisites (Docker + Docker Compose), walks through config (mode, proxy, port), builds and starts the container, and adds the `seleniumbase` entry to `~/.claude/settings.json` automatically (if Claude Code is installed).
 
+Restart Claude Code afterward — the `browser_*` tools will be available.
+
+## Manual setup
+
+If you prefer to configure by hand:
+
+1. `cp .env.example .env` and edit as needed
+2. `docker compose up -d`
 3. Add to `~/.claude/settings.json`:
    ```json
    {
@@ -25,8 +31,7 @@ Live browser control for Claude Code and OpenCode via SeleniumBase. Runs entirel
      }
    }
    ```
-
-4. Restart Claude Code. The `browser_*` tools are now available.
+4. Restart Claude Code.
 
 ## Browser Modes
 
