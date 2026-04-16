@@ -17,8 +17,33 @@ docker compose version >/dev/null 2>&1 || fail "docker compose plugin not found.
 ok "docker and docker compose available"
 
 # ── .env ──────────────────────────────────────────────────────────────────────
+# Extract KEY=default lines from .env.example (ignore comments, blank lines)
+parse_example_keys() {
+  grep -E '^[A-Z_][A-Z0-9_]*=' .env.example
+}
+
+# Sync: append any KEY present in .env.example but missing from .env
+sync_env() {
+  local added=()
+  while IFS= read -r line; do
+    local key="${line%%=*}"
+    if ! grep -qE "^${key}=" .env; then
+      echo "$line" >> .env
+      added+=("$key")
+    fi
+  done < <(parse_example_keys)
+
+  if [[ ${#added[@]} -gt 0 ]]; then
+    warn "Added ${#added[@]} new config key(s) from .env.example (defaults applied):"
+    printf "     - %s\n" "${added[@]}"
+    echo "     Review/edit .env before continuing, then press Enter."
+    read -r
+  fi
+}
+
 if [[ -f .env ]]; then
-  log ".env already exists — keeping your settings"
+  log ".env already exists — syncing any new keys from .env.example"
+  sync_env
 else
   log "Creating .env from .env.example"
   cp .env.example .env
