@@ -10,6 +10,14 @@ cd SeleniumbaseAgent
 ./setup.sh
 ```
 
+### Curl-to-bash (for those who prefer simplicity over security)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/PeterWoolery/SeleniumbaseAgent/master/install.sh | bash
+```
+
+This clones the repo into the current directory and runs `setup.sh`. Piping remote scripts straight to `bash` means you're trusting whatever the URL serves at the moment of execution — inspect the script first if that bothers you.
+
 The script checks prerequisites (Docker + Docker Compose), walks through config (mode, proxy, port), builds and starts the container, then registers the `seleniumbase` MCP server. You'll be asked to pick a scope:
 
 - **user scope** (default) — writes to `~/.claude.json`, available in every project
