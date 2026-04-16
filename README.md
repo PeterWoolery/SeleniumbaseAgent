@@ -10,7 +10,11 @@ cd SeleniumbaseAgent
 ./setup.sh
 ```
 
-The script checks prerequisites (Docker + Docker Compose), walks through config (mode, proxy, port), builds and starts the container, and adds the `seleniumbase` entry to `~/.claude/settings.json` automatically (if Claude Code is installed).
+The script checks prerequisites (Docker + Docker Compose), walks through config (mode, proxy, port), builds and starts the container, then registers the `seleniumbase` MCP server. You'll be asked to pick a scope:
+
+- **user scope** (default) — writes to `~/.claude.json`, available in every project
+- **project scope** — writes `.mcp.json` in a chosen directory, available only there
+- **skip** — prints config to add manually
 
 Restart Claude Code afterward — the `browser_*` tools will be available.
 
@@ -20,7 +24,9 @@ If you prefer to configure by hand:
 
 1. `cp .env.example .env` and edit as needed
 2. `docker compose up -d`
-3. Add to `~/.claude/settings.json`:
+3. Register the server in one of:
+   - **User scope** — add to `mcpServers` in `~/.claude.json`
+   - **Project scope** — create `.mcp.json` in your project root
    ```json
    {
      "mcpServers": {

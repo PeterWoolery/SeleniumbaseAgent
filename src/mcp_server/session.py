@@ -12,6 +12,7 @@ from seleniumbase import SB
 @dataclass
 class _State:
     sb: Optional[object] = None
+    cm: Optional[object] = None
     mode: str = "cdp"
     status: str = "stopped"   # stopped | running | disconnected
     current_url: str = ""
@@ -62,15 +63,15 @@ def start(mode: str = "cdp", proxy: Optional[str] = None) -> dict:
             uc=True,
             xvfb=not bool(os.getenv("DISPLAY")),
             headless=False,
-            timeout=_TIMEOUT,
         )
         if proxy:
             kwargs["proxy"] = proxy
 
-        sb = SB(**kwargs)
-        sb.__enter__()
+        cm = SB(**kwargs)
+        sb = cm.__enter__()
 
         _state.sb = sb
+        _state.cm = cm
         _state.mode = mode
         _state.status = "running"
         _state.current_url = ""
@@ -81,9 +82,9 @@ def start(mode: str = "cdp", proxy: Optional[str] = None) -> dict:
 def close() -> dict:
     """Close the browser session."""
     with _lock:
-        if _state.sb is not None:
+        if _state.cm is not None:
             try:
-                _state.sb.__exit__(None, None, None)
+                _state.cm.__exit__(None, None, None)
             except Exception:
                 pass
         _reset()

@@ -91,32 +91,10 @@ for i in {1..30}; do
 done
 
 # ── Claude Code integration ───────────────────────────────────────────────────
-SETTINGS="${HOME}/.claude/settings.json"
 SSE_URL="http://localhost:${PORT}/sse"
+USER_CONFIG="${HOME}/.claude.json"
 
-if [[ -f "$SETTINGS" ]]; then
-  read -r -p "Add 'seleniumbase' MCP server to ${SETTINGS}? [Y/n]: " add_cc
-  add_cc="${add_cc:-Y}"
-  if [[ "${add_cc,,}" == "y" ]]; then
-    if command -v jq >/dev/null 2>&1; then
-      tmp="$(mktemp)"
-      jq --arg url "$SSE_URL" \
-        '.mcpServers.seleniumbase = {type:"sse", url:$url}' \
-        "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
-      ok "added to ${SETTINGS} — restart Claude Code to pick it up"
-    else
-      warn "jq not installed; showing config to add manually:"
-      cat <<EOF
-{
-  "mcpServers": {
-    "seleniumbase": { "type": "sse", "url": "${SSE_URL}" }
-  }
-}
-EOF
-    fi
-  fi
-else
-  log "Claude Code settings not found — add this to your MCP client:"
+print_manual_block() {
   cat <<EOF
 
   {
@@ -126,7 +104,68 @@ else
   }
 
 EOF
-fi
+}
+
+register_user_scope() {
+  if ! command -v jq >/dev/null 2>&1; then
+    warn "jq not installed; add this manually to ${USER_CONFIG} at top-level 'mcpServers':"
+    print_manual_block
+    return
+  fi
+  [[ -f "$USER_CONFIG" ]] || echo '{}' > "$USER_CONFIG"
+  tmp="$(mktemp)"
+  jq --arg url "$SSE_URL" \
+    '.mcpServers.seleniumbase = {type:"sse", url:$url}' \
+    "$USER_CONFIG" > "$tmp" && mv "$tmp" "$USER_CONFIG"
+  ok "registered in ${USER_CONFIG} (user scope — available in all projects)"
+}
+
+register_project_scope() {
+  local target="$1"
+  [[ -d "$target" ]] || fail "directory not found: $target"
+  local mcp_file="${target%/}/.mcp.json"
+  if command -v jq >/dev/null 2>&1; then
+    [[ -f "$mcp_file" ]] || echo '{}' > "$mcp_file"
+    tmp="$(mktemp)"
+    jq --arg url "$SSE_URL" \
+      '.mcpServers.seleniumbase = {type:"sse", url:$url}' \
+      "$mcp_file" > "$tmp" && mv "$tmp" "$mcp_file"
+  else
+    cat > "$mcp_file" <<EOF
+{
+  "mcpServers": {
+    "seleniumbase": { "type": "sse", "url": "${SSE_URL}" }
+  }
+}
+EOF
+  fi
+  ok "wrote ${mcp_file} (project scope — this project only)"
+}
+
+echo
+log "Register 'seleniumbase' with Claude Code?"
+echo "  1) user scope     — available in all projects (~/.claude.json)"
+echo "  2) project scope  — single project (.mcp.json in that directory)"
+echo "  3) skip           — show config for manual setup"
+read -r -p "Choice [1/2/3] (default 1): " scope_choice
+scope_choice="${scope_choice:-1}"
+
+case "$scope_choice" in
+  1)
+    register_user_scope
+    ;;
+  2)
+    read -r -p "Project directory (default: current working directory): " proj_dir
+    proj_dir="${proj_dir:-$PWD}"
+    register_project_scope "$proj_dir"
+    ;;
+  *)
+    log "Skipping registration. Add this to your MCP client:"
+    print_manual_block
+    ;;
+esac
+
+echo "Restart Claude Code to load the server."
 
 echo
 ok "Setup complete."
