@@ -5,7 +5,5 @@ services:
       - "${MCP_PORT:-8765}:8765"
     env_file:
       - .env
-    environment:
-      - DISPLAY=:99
     shm_size: "2gb"
     restart: unless-stopped
