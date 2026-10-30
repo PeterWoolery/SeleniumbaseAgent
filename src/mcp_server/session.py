@@ -32,6 +32,11 @@ def _reset() -> None:
 def _require_session() -> object:
     if _state.status != "running" or _state.sb is None:
         raise RuntimeError("No active session. Call browser_start first.")
+    try:
+        _state.sb.get_current_url()
+    except Exception as exc:
+        _state.status = "disconnected"
+        raise RuntimeError("Browser session disconnected. Call browser_start again.") from exc
     return _state.sb
 
 
@@ -58,11 +63,13 @@ def start(mode: str = "cdp", proxy: Optional[str] = None) -> dict:
     with _lock:
         if _state.status == "running":
             return {"status": "already_running", "url": _state.current_url}
+        if mode not in {"cdp", "uc", "standard"}:
+            raise RuntimeError("mode must be one of: cdp, uc, standard")
 
         kwargs = dict(
-            uc=True,
-            xvfb=not bool(os.getenv("DISPLAY")),
-            headless=False,
+            uc=mode in {"cdp", "uc"},
+            xvfb=False,
+            headless=True,
         )
         if proxy:
             kwargs["proxy"] = proxy
@@ -96,6 +103,7 @@ def status() -> dict:
     try:
         url = _state.sb.get_current_url() if _state.status == "running" else ""
     except Exception:
+        _state.status = "disconnected"
         url = _state.current_url
     return {"status": _state.status, "url": url, "mode": _state.mode}
 

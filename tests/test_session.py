@@ -30,6 +30,24 @@ def test_start_returns_running():
     assert result["mode"] == "standard"
 
 
+def test_start_uses_headless_container_defaults():
+    mock_sb = _make_mock_sb()
+    with patch("src.mcp_server.session.SB", return_value=mock_sb) as MockSB:
+        session_module.start(mode="standard")
+    call_kwargs = MockSB.call_args[1]
+    assert call_kwargs["headless"] is True
+    assert call_kwargs["xvfb"] is False
+    assert call_kwargs["uc"] is False
+
+
+def test_start_uses_uc_for_cdp_mode():
+    mock_sb = _make_mock_sb()
+    with patch("src.mcp_server.session.SB", return_value=mock_sb) as MockSB:
+        session_module.start(mode="cdp")
+    call_kwargs = MockSB.call_args[1]
+    assert call_kwargs["uc"] is True
+
+
 def test_start_already_running():
     mock_sb = _make_mock_sb()
     with patch("src.mcp_server.session.SB", return_value=mock_sb):
@@ -49,6 +67,15 @@ def test_status_running_after_start():
         session_module.start(mode="cdp")
         result = session_module.status()
     assert result["status"] == "running"
+
+
+def test_status_marks_disconnected_when_driver_is_gone():
+    mock_sb = _make_mock_sb()
+    mock_sb.get_current_url.side_effect = RuntimeError("driver gone")
+    with patch("src.mcp_server.session.SB", return_value=mock_sb):
+        session_module.start(mode="standard")
+        result = session_module.status()
+    assert result["status"] == "disconnected"
 
 
 def test_close_stops_session():
@@ -101,6 +128,16 @@ def test_navigate_cdp_mode():
 def test_navigate_raises_when_no_session():
     with pytest.raises(RuntimeError, match="No active session"):
         session_module.navigate("https://example.com")
+
+
+def test_navigate_raises_when_driver_is_disconnected():
+    mock_sb = _make_mock_sb()
+    with patch("src.mcp_server.session.SB", return_value=mock_sb):
+        session_module.start(mode="standard")
+        mock_sb.get_current_url.side_effect = RuntimeError("driver gone")
+        with pytest.raises(RuntimeError, match="Browser session disconnected"):
+            session_module.navigate("https://example.com")
+    assert session_module.status()["status"] == "disconnected"
 
 
 def test_proxy_passed_to_sb():
